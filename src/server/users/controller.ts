@@ -1,0 +1,173 @@
+import { validateIt } from '../../common/validation/validate';
+import { isUUID } from 'class-validator';
+import { UserDto, UserDtoGroup, GetUsersRequestDto, UserLoginRequestDto } from './class-validator';
+import { NextFunction, Request, Response } from 'express';
+import { UserService } from './service';
+import { CommonDtoGroup } from '../../common/validation/dto/common.dto';
+import { UserException } from './error';
+import { StatusCodes } from '../../common/utility/status-codes';
+import { Gender, UserRole } from '../../db/entities/user.entity';
+
+class UserController {
+  private readonly userService = new UserService();
+
+  constructor() {
+    this.create = this.create.bind(this);
+    this.updateById = this.updateById.bind(this);
+    this.getById = this.getById.bind(this);
+    this.getMe = this.getMe.bind(this);
+    this.getAll = this.getAll.bind(this);
+    this.deleteById = this.deleteById.bind(this);
+    this.login = this.login.bind(this);
+    this.authorizeUser = this.authorizeUser.bind(this);
+    this.refreshToken = this.refreshToken.bind(this);
+  }
+
+  // 🧩 Foydalanuvchi yaratish (POST /users)
+  async create(req: Request, res: Response) {
+    const body = await validateIt(req.body, UserDto, [UserDtoGroup.CREATE]);
+    // Role request'dan keladi, agar yo'q bo'lsa default ADMIN
+    // SuperAdmin ADMIN yoki SUPER_ADMIN yaratishi mumkin
+    if (!body.role) {
+      body.role = UserRole.ADMIN;
+    }
+
+    // 👉 Asl metod: createUser
+    const user = await this.userService.createUser(body);
+    return res.success(user, {}, StatusCodes.CREATED);
+  }
+
+  async updateById(req: Request, res: Response) {
+    const body = await validateIt(req.body, UserDto, [UserDtoGroup.UPDATE]);
+    body.role = undefined;
+
+    if (body.password) {
+      if (body.password !== body.confirmPassword) {
+        throw UserException.InvalidPassword();
+      }
+
+      body.password = await this.userService.hashPassword(body.password);
+    }
+
+    const user = await this.userService.findByIdAndUpdateUser(body);
+    return res.success(user);
+  }
+
+  public async getById(req: Request, res: Response) {
+    const id = req.params.id;
+
+    if (!isUUID(id)) {
+      return res.status(400).send({ message: 'Invalid user id' });
+    }
+
+    const user = await this.userService.findById(id);
+
+    if (!user || (user as any).role !== UserRole.ADMIN) {
+      throw UserException.NotFound();
+    }
+
+    return res.success(user);
+  }
+
+  public async getMe(req: Request, res: Response) {
+    const id = req.user?._id;
+
+    if (!id || !isUUID(id)) {
+      return res.status(400).send({ message: 'Invalid user id' });
+    }
+
+    const user = await this.userService.getMe(id);
+
+    const fullNameParts = [
+      user.firstName || user.tgFirstName || '',
+      user.lastName || user.tgLastName || '',
+    ].filter(Boolean);
+
+    const profile = {
+      fullName: fullNameParts.join(' ') || user.username || '',
+      email: user.email || '',
+      phoneNumber: user.phoneNumber || '',
+      address: user.address || '',
+      dateOfBirth: user.birthday || null,
+      gender: user.gender || Gender.NotSet,
+      registeredDate: user.createdAt || null,
+    };
+
+    return res.success(profile);
+  }
+
+  public async getAll(req: Request, res: Response) {
+    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+
+    const data = await this.userService.getPaging(query);
+
+    return res.success(data.data, {
+      currentPage: query.page,
+      limit: query.limit,
+      totalCount: data.total,
+      pageCount: Math.ceil(data.total / query.limit),
+    });
+  }
+
+  public async deleteById(req: Request, res: Response) {
+    const id = req.params.id;
+
+    if (!isUUID(id)) {
+      return res.status(400).json({ error: 'invalid id' });
+    }
+
+    if (req.user?._id === id) {
+      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
+    }
+
+    const user = await this.userService.findById(id);
+
+    if (!user || (user as any).role !== UserRole.ADMIN) {
+      throw UserException.NotFound();
+    }
+
+    await this.userService.deleteById(id, req.user._id);
+
+    return res.success({ id: id });
+  }
+
+  //! 🧩 Auth
+  public async login(req: Request, res: Response) {
+    const body = await validateIt(req.body, UserLoginRequestDto, [CommonDtoGroup.CREATE]);
+    const data = await this.userService.login(body);
+    return res.success(data, {});
+  }
+
+  async authorizeUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+
+      if (!token) {
+        return res.status(401).json(UserException.Unauthorized());
+      }
+
+      req.user = await this.userService.authorizeUser(token, 'access');
+      next();
+    } catch (err) {
+      return res.status(401).json(UserException.Unauthorized());
+    }
+  }
+
+  async refreshToken(req: Request, res: Response) {
+    const body = await validateIt(req.body, UserLoginRequestDto, [CommonDtoGroup.UPDATE]);
+    const data = await this.userService.refreshToken(body.refreshToken);
+    return res.success(data, {});
+  }
+
+  authorizeRoles(...roles: UserRole[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (!req.user || !roles.includes(req.user.role as UserRole)) {
+        return res.status(StatusCodes.FORBIDDEN).json(UserException.NotEnoughPermission(StatusCodes.FORBIDDEN));
+      }
+
+      next();
+    };
+  }
+}
+
+export const userController = new UserController();
