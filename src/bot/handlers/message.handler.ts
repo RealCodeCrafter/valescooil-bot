@@ -55,7 +55,7 @@ async function registerUserName(ctx: MyContext) {
   ctx.session.is_editable_image = false;
 
   return ctx.reply(ctx.i18n.t('auth.requestPhoneNumber'), {
-    reply_markup: contactRequestKeyboard(ctx.i18n.t('sendContact')),
+    reply_markup: contactRequestKeyboard(ctx.i18n.t('auth.sendContact')),
     parse_mode: 'HTML',
   });
 }
