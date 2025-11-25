@@ -16,8 +16,11 @@ class UserController {
     this.updateById = this.updateById.bind(this);
     this.updateAnyUser = this.updateAnyUser.bind(this);
     this.getById = this.getById.bind(this);
+    this.getUserById = this.getUserById.bind(this);
     this.getMe = this.getMe.bind(this);
     this.getAll = this.getAll.bind(this);
+    this.getAllUsers = this.getAllUsers.bind(this);
+    this.getAllAdmins = this.getAllAdmins.bind(this);
     this.deleteById = this.deleteById.bind(this);
     this.deleteAnyUser = this.deleteAnyUser.bind(this);
     this.login = this.login.bind(this);
@@ -109,6 +112,51 @@ class UserController {
       totalCount: data.total,
       pageCount: Math.ceil(data.total / query.limit),
     });
+  }
+
+  // 🆕 Userlarni hammasini olish (USER role)
+  public async getAllUsers(req: Request, res: Response) {
+    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+
+    const data = await this.userService.getAllUsers(query);
+
+    return res.success(data.data, {
+      currentPage: query.page,
+      limit: query.limit,
+      totalCount: data.total,
+      pageCount: Math.ceil(data.total / query.limit),
+    });
+  }
+
+  // 🆕 Adminlarni hammasini olish (ADMIN va SUPER_ADMIN)
+  public async getAllAdmins(req: Request, res: Response) {
+    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+
+    const data = await this.userService.getAllAdmins(query);
+
+    return res.success(data.data, {
+      currentPage: query.page,
+      limit: query.limit,
+      totalCount: data.total,
+      pageCount: Math.ceil(data.total / query.limit),
+    });
+  }
+
+  // 🆕 Har qanday user'ni ID orqali olish
+  public async getUserById(req: Request, res: Response) {
+    const id = req.params.id;
+
+    if (!isUUID(id)) {
+      return res.status(400).send({ message: 'Invalid user id' });
+    }
+
+    const user = await this.userService.getUserById(id);
+
+    if (!user) {
+      throw UserException.NotFound();
+    }
+
+    return res.success(user);
   }
 
   public async deleteById(req: Request, res: Response) {

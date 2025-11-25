@@ -4,7 +4,7 @@ import { UserAuthService } from './auth.service';
 import { GetUsersRequestDto, UserDto } from './class-validator';
 import { UserException } from './error';
 import { AppDataSource } from '../../db/connect.db';
-import { DeepPartial, IsNull, Like, Or } from 'typeorm';
+import { DeepPartial, IsNull, Like, In } from 'typeorm';
 import { Code } from '../../db/entities/code.entity';
 import { Gift } from '../../db/entities/gift.entity';
 
@@ -289,5 +289,159 @@ if (query.search) {
       data: usersWithCodes as any,
       total,
     };
+  }
+
+  // 🆕 Userlarni hammasini olish (USER role)
+  async getAllUsers(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
+    const where: any = { deletedAt: IsNull(), role: UserRole.USER };
+    
+    if (query.search) {
+      where['OR'] = [
+        { tgFirstName: Like(`%${query.search}%`) },
+        { tgLastName: Like(`%${query.search}%`) },
+        { tgUsername: Like(`%${query.search}%`) },
+        { username: Like(`%${query.search}%`) },
+        { firstName: Like(`%${query.search}%`) },
+        { lastName: Like(`%${query.search}%`) },
+        { phoneNumber: Like(`%${query.search}%`) },
+      ];
+    }
+
+    const orderType = query.orderType === 'ASC' ? 'ASC' : 'DESC';
+    const orderBy = query.orderBy || '_id';
+    const order: any = { [orderBy]: orderType };
+
+    const [users, total] = await this.repository.findAndCount({
+      where,
+      select: {
+        _id: true,
+        firstName: true,
+        lastName: true,
+        tgFirstName: true,
+        tgLastName: true,
+        tgUsername: true,
+        tgId: true,
+        username: true,
+        phoneNumber: true,
+        email: true,
+        address: true,
+        birthday: true,
+        gender: true,
+        status: true,
+        role: true,
+        createdAt: true,
+        lastUseAt: true,
+      },
+      order,
+      take: query.limit ?? 10,
+      skip: ((query.page ?? 1) - 1) * (query.limit ?? 10),
+    });
+
+    // Password ni olib tashlash
+    const usersWithoutPassword = users.map((user: any) => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+
+    return {
+      data: usersWithoutPassword as any,
+      total,
+    };
+  }
+
+  // 🆕 Adminlarni hammasini olish (ADMIN va SUPER_ADMIN)
+  async getAllAdmins(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
+    const where: any = { 
+      deletedAt: IsNull(), 
+      role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN])
+    };
+    
+    if (query.search) {
+      where['OR'] = [
+        { tgFirstName: Like(`%${query.search}%`) },
+        { tgLastName: Like(`%${query.search}%`) },
+        { tgUsername: Like(`%${query.search}%`) },
+        { username: Like(`%${query.search}%`) },
+        { firstName: Like(`%${query.search}%`) },
+        { lastName: Like(`%${query.search}%`) },
+        { phoneNumber: Like(`%${query.search}%`) },
+      ];
+    }
+
+    const orderType = query.orderType === 'ASC' ? 'ASC' : 'DESC';
+    const orderBy = query.orderBy || '_id';
+    const order: any = { [orderBy]: orderType };
+
+    const [users, total] = await this.repository.findAndCount({
+      where,
+      select: {
+        _id: true,
+        firstName: true,
+        lastName: true,
+        tgFirstName: true,
+        tgLastName: true,
+        tgUsername: true,
+        tgId: true,
+        username: true,
+        phoneNumber: true,
+        email: true,
+        address: true,
+        birthday: true,
+        gender: true,
+        status: true,
+        role: true,
+        createdAt: true,
+        lastUseAt: true,
+      },
+      order,
+      take: query.limit ?? 10,
+      skip: ((query.page ?? 1) - 1) * (query.limit ?? 10),
+    });
+
+    // Password ni olib tashlash
+    const usersWithoutPassword = users.map((user: any) => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+
+    return {
+      data: usersWithoutPassword as any,
+      total,
+    };
+  }
+
+  // 🆕 Har qanday user'ni ID orqali olish
+  async getUserById(id: string): Promise<UserDto | null> {
+    const user = await this.repository.findOne({
+      where: { _id: id, deletedAt: IsNull() } as any,
+      select: {
+        _id: true,
+        id: true,
+        firstName: true,
+        lastName: true,
+        tgFirstName: true,
+        tgLastName: true,
+        tgUsername: true,
+        tgId: true,
+        username: true,
+        phoneNumber: true,
+        email: true,
+        address: true,
+        birthday: true,
+        gender: true,
+        status: true,
+        role: true,
+        createdAt: true,
+        lastUseAt: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    // Password ni olib tashlash
+    const { password, ...userWithoutPassword } = user as any;
+    return userWithoutPassword as any;
   }
 }
