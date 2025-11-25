@@ -93,22 +93,22 @@ export class UserService extends UserAuthService<UserDto> {
       }
     }
 
-    // Update data - faqat kerakli field'larni olish
-    const updateData: Partial<User> = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      username: data.username,
-      phoneNumber: data.phoneNumber,
-      email: data.email,
-      address: data.address,
-      birthday: data.birthday ?? null,
-      gender: data.gender,
-      status: data.status,
-      lang: data.lang,
-      tgFirstName: data.tgFirstName,
-      tgLastName: data.tgLastName,
-      tgUsername: data.tgUsername,
-    };
+    // Update data - faqat berilgan maydonlarni olish (undefined emas bo'lganlar)
+    const updateData: Partial<User> = {};
+    
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.username !== undefined) updateData.username = data.username;
+    if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.birthday !== undefined) updateData.birthday = data.birthday ?? null;
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.lang !== undefined) updateData.lang = data.lang;
+    if (data.tgFirstName !== undefined) updateData.tgFirstName = data.tgFirstName;
+    if (data.tgLastName !== undefined) updateData.tgLastName = data.tgLastName;
+    if (data.tgUsername !== undefined) updateData.tgUsername = data.tgUsername;
 
     // Parol yangilangan bo'lsa, shifrlash
     if (data.password) {
@@ -116,6 +116,16 @@ export class UserService extends UserAuthService<UserDto> {
         throw UserException.PasswordsDoNotMatch();
       }
       updateData.password = await this.hashPassword(data.password);
+    }
+
+    // Hech qanday o'zgarish bo'lmasa
+    if (Object.keys(updateData).length === 0) {
+      const existingUser = await this.findById(user._id);
+      if (!existingUser) {
+        throw UserException.NotFound();
+      }
+      const { password, ...userWithoutPassword } = existingUser as any;
+      return { ...userWithoutPassword, _id: existingUser._id.toString(), id: existingUser._id.toString() } as any;
     }
 
     const newUser = await this.findByIdAndUpdate(user._id, updateData);
@@ -154,25 +164,25 @@ export class UserService extends UserAuthService<UserDto> {
       }
     }
 
-    // Update data - faqat kerakli field'larni olish
-    const updateData: Partial<User> = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      username: data.username,
-      phoneNumber: data.phoneNumber,
-      email: data.email,
-      address: data.address,
-      birthday: data.birthday ?? null,
-      gender: data.gender,
-      status: data.status,
-      lang: data.lang,
-      tgFirstName: data.tgFirstName,
-      tgLastName: data.tgLastName,
-      tgUsername: data.tgUsername,
-    };
+    // Update data - faqat berilgan maydonlarni olish (undefined emas bo'lganlar)
+    const updateData: Partial<User> = {};
+    
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.username !== undefined) updateData.username = data.username;
+    if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.birthday !== undefined) updateData.birthday = data.birthday ?? null;
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.lang !== undefined) updateData.lang = data.lang;
+    if (data.tgFirstName !== undefined) updateData.tgFirstName = data.tgFirstName;
+    if (data.tgLastName !== undefined) updateData.tgLastName = data.tgLastName;
+    if (data.tgUsername !== undefined) updateData.tgUsername = data.tgUsername;
 
     // Role o'zgartirish faqat ruxsat berilganda
-    if (allowRoleChange && data.role) {
+    if (allowRoleChange && data.role !== undefined) {
       updateData.role = data.role;
     }
 
@@ -182,6 +192,16 @@ export class UserService extends UserAuthService<UserDto> {
         throw UserException.PasswordsDoNotMatch();
       }
       updateData.password = await this.hashPassword(data.password);
+    }
+
+    // Hech qanday o'zgarish bo'lmasa
+    if (Object.keys(updateData).length === 0) {
+      const existingUser = await this.findById(user._id);
+      if (!existingUser) {
+        throw UserException.NotFound();
+      }
+      const { password, ...userWithoutPassword } = existingUser as any;
+      return { ...userWithoutPassword, _id: existingUser._id.toString(), id: existingUser._id.toString() } as any;
     }
 
     const updatedUser = await this.findByIdAndUpdate(user._id, updateData);
@@ -196,9 +216,8 @@ export class UserService extends UserAuthService<UserDto> {
   }
 
   // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN) - tgId bilan
-  async deleteAnyUser(tgId: number | string, deletedByTgId: number | string): Promise<string> {
+  async deleteAnyUser(tgId: number | string, deletedByTgId: number | string | null): Promise<string> {
     const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
-    const deletedByTgIdNumber = typeof deletedByTgId === 'string' ? Number(deletedByTgId) : deletedByTgId;
     
     const user = await this.repository.findOne({
       where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
@@ -209,27 +228,35 @@ export class UserService extends UserAuthService<UserDto> {
       throw UserException.NotFound();
     }
 
-    // O'zini o'chirishni taqiqlash
-    if (user.tgId === deletedByTgIdNumber) {
-      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
-    }
-
     // SUPER_ADMIN ni o'chirishni taqiqlash
     if (user.role === UserRole.SUPER_ADMIN) {
       throw UserException.NotEnoughPermission('Cannot delete SUPER_ADMIN');
     }
 
     // deletedBy ni UUID orqali topish
-    const deletedByUser = await this.repository.findOne({
-      where: { tgId: deletedByTgIdNumber, deletedAt: IsNull() } as any,
-      select: { _id: true },
-    });
+    let deletedByUuid: string | null = null;
+    
+    if (deletedByTgId !== null && deletedByTgId !== undefined) {
+      const deletedByTgIdNumber = typeof deletedByTgId === 'string' ? Number(deletedByTgId) : deletedByTgId;
+      
+      // O'zini o'chirishni taqiqlash
+      if (user.tgId === deletedByTgIdNumber) {
+        throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
+      }
 
-    if (!deletedByUser) {
-      throw UserException.NotFound();
+      const deletedByUser = await this.repository.findOne({
+        where: { tgId: deletedByTgIdNumber, deletedAt: IsNull() } as any,
+        select: { _id: true },
+      });
+
+      if (!deletedByUser) {
+        throw UserException.NotFound();
+      }
+
+      deletedByUuid = deletedByUser._id;
     }
 
-    return await this.deleteById(user._id, deletedByUser._id);
+    return await this.deleteById(user._id, deletedByUuid || user._id);
   }
 
   async getPaging(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
