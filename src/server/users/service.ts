@@ -8,6 +8,7 @@ import { DeepPartial, IsNull, Like, In } from 'typeorm';
 import { Code } from '../../db/entities/code.entity';
 import { Gift } from '../../db/entities/gift.entity';
 import { StatusCodes } from '../../common/utility/status-codes';
+import { CommonException } from '../../common/errors/common.error';
 
 export class UserService extends UserAuthService<UserDto> {
   constructor() {
@@ -215,15 +216,17 @@ export class UserService extends UserAuthService<UserDto> {
     return { ...userWithoutPassword, _id: updatedUser._id.toString(), id: updatedUser._id.toString() } as any;
   }
 
-  // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN) - tgId bilan
+  // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN) - tgId bilan (HARD DELETE)
   async deleteAnyUser(tgId: number | string, deletedByTgId: number | string | null): Promise<string> {
     const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
     
+    // Avval o'chirilmagan user'ni qidirish
     const user = await this.repository.findOne({
       where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
       select: { _id: true, role: true, tgId: true },
     });
 
+    // Agar o'chirilmagan user topilmasa, xatolik
     if (!user) {
       throw UserException.NotFound();
     }
@@ -256,7 +259,14 @@ export class UserService extends UserAuthService<UserDto> {
       deletedByUuid = deletedByUser._id;
     }
 
-    return await this.deleteById(user._id, deletedByUuid || user._id);
+    // HARD DELETE - bazadan to'liq o'chirish
+    try {
+      await this.repository.delete({ _id: user._id } as any);
+      return user._id;
+    } catch (e: any) {
+      this.sendError('UserService.deleteAnyUser', e?.message);
+      throw CommonException.InternalServerError();
+    }
   }
 
   async getPaging(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {

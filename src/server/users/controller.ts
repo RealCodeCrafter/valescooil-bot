@@ -176,17 +176,10 @@ class UserController {
     
     // Foydalanuvchi o'zini o'chirishni tekshirish - current user'ning tgId'ini topish
     const currentUser = await this.userService.findById(req.user?._id);
-    if (currentUser && (currentUser as any).tgId === tgIdNumber) {
-      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
-    }
+    const currentUserTgId = currentUser ? (currentUser as any).tgId : null;
 
-    const user = await this.userService.getAdminByTgId(tgIdNumber);
-
-    if (!user) {
-      throw UserException.NotFound();
-    }
-
-    await this.userService.deleteById(user._id, req.user._id);
+    // deleteAnyUser metodidan foydalanish (hard delete)
+    await this.userService.deleteAnyUser(tgIdNumber, currentUserTgId);
 
     return res.success({ tgId: tgId });
   }

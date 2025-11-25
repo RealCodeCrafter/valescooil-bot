@@ -20,7 +20,18 @@ export const validateIt = async <T>(data: any, classType: ClassConstructor<T>, g
     groups,
   });
 
-  const errors = await validate(classData as any, { groups, whitelist: true });
+  // UPDATE guruhida skipMissingProperties qo'llash
+  const isUpdateGroup = Array.isArray(groups) && (
+    groups.includes('UPDATE') || 
+    groups.includes('update') ||
+    groups.some((g: any) => typeof g === 'string' && g.includes('UPDATE'))
+  );
+
+  const errors = await validate(classData as any, { 
+    groups, 
+    whitelist: true,
+    skipMissingProperties: isUpdateGroup
+  });
 
   if (!errors || errors.length === 0) return classData;
 
