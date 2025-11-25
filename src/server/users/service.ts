@@ -7,6 +7,7 @@ import { AppDataSource } from '../../db/connect.db';
 import { DeepPartial, IsNull, Like, In } from 'typeorm';
 import { Code } from '../../db/entities/code.entity';
 import { Gift } from '../../db/entities/gift.entity';
+import { StatusCodes } from '../../common/utility/status-codes';
 
 export class UserService extends UserAuthService<UserDto> {
   constructor() {
@@ -69,18 +70,21 @@ export class UserService extends UserAuthService<UserDto> {
     } as unknown as UserDto;
   }
 
-  async findByIdAndUpdateUser(data: UserDto): Promise<UserDto | null> {
+  async findByIdAndUpdateUser(tgId: number | string, data: UserDto): Promise<UserDto | null> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    
     const user = await this.repository.findOne({
-      where: { _id: data._id } as any,
-      select: { _id: true, username: true, role: true },
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
+      select: { _id: true, username: true, role: true, tgId: true },
     });
+    
     if (!user || user.role !== UserRole.ADMIN) {
       throw UserException.NotFound();
     }
 
-    if (data.username && data._id.toString() !== user._id.toString()) {
+    if (data.username && user.tgId !== tgIdNumber) {
       const userByUsername = await this.repository.findOne({
-        where: { username: data.username } as any,
+        where: { username: data.username, deletedAt: IsNull() } as any,
         select: { _id: true },
       });
 
@@ -108,10 +112,13 @@ export class UserService extends UserAuthService<UserDto> {
 
     // Parol yangilangan bo'lsa, shifrlash
     if (data.password) {
+      if (data.password !== data.confirmPassword) {
+        throw UserException.PasswordsDoNotMatch();
+      }
       updateData.password = await this.hashPassword(data.password);
     }
 
-    const newUser = await this.findByIdAndUpdate(data._id, updateData);
+    const newUser = await this.findByIdAndUpdate(user._id, updateData);
 
     if (!newUser || !('_id' in newUser)) {
       throw UserException.NotFound();
@@ -122,11 +129,13 @@ export class UserService extends UserAuthService<UserDto> {
     return { ...userWithoutPassword, _id: newUser._id.toString(), id: newUser._id.toString() } as any;
   }
 
-  // 🆕 Umumiy user update qilish (USER, ADMIN, SUPER_ADMIN)
-  async updateAnyUser(data: UserDto, allowRoleChange: boolean = false): Promise<UserDto | null> {
+  // 🆕 Umumiy user update qilish (USER, ADMIN, SUPER_ADMIN) - tgId bilan
+  async updateAnyUser(tgId: number | string, data: UserDto, allowRoleChange: boolean = false): Promise<UserDto | null> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    
     const user = await this.repository.findOne({
-      where: { _id: data._id, deletedAt: IsNull() } as any,
-      select: { _id: true, username: true, role: true },
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
+      select: { _id: true, username: true, role: true, tgId: true },
     });
 
     if (!user) {
@@ -134,7 +143,7 @@ export class UserService extends UserAuthService<UserDto> {
     }
 
     // Username takrorlanmasligini tekshirish
-    if (data.username && data._id.toString() !== user._id.toString()) {
+    if (data.username && user.tgId !== tgIdNumber) {
       const userByUsername = await this.repository.findOne({
         where: { username: data.username, deletedAt: IsNull() } as any,
         select: { _id: true },
@@ -175,7 +184,7 @@ export class UserService extends UserAuthService<UserDto> {
       updateData.password = await this.hashPassword(data.password);
     }
 
-    const updatedUser = await this.findByIdAndUpdate(data._id, updateData);
+    const updatedUser = await this.findByIdAndUpdate(user._id, updateData);
 
     if (!updatedUser || !('_id' in updatedUser)) {
       throw UserException.NotFound();
@@ -186,15 +195,23 @@ export class UserService extends UserAuthService<UserDto> {
     return { ...userWithoutPassword, _id: updatedUser._id.toString(), id: updatedUser._id.toString() } as any;
   }
 
-  // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN)
-  async deleteAnyUser(id: string, deletedBy: string): Promise<string> {
+  // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN) - tgId bilan
+  async deleteAnyUser(tgId: number | string, deletedByTgId: number | string): Promise<string> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    const deletedByTgIdNumber = typeof deletedByTgId === 'string' ? Number(deletedByTgId) : deletedByTgId;
+    
     const user = await this.repository.findOne({
-      where: { _id: id, deletedAt: IsNull() } as any,
-      select: { _id: true, role: true },
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
+      select: { _id: true, role: true, tgId: true },
     });
 
     if (!user) {
       throw UserException.NotFound();
+    }
+
+    // O'zini o'chirishni taqiqlash
+    if (user.tgId === deletedByTgIdNumber) {
+      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
     }
 
     // SUPER_ADMIN ni o'chirishni taqiqlash
@@ -202,7 +219,17 @@ export class UserService extends UserAuthService<UserDto> {
       throw UserException.NotEnoughPermission('Cannot delete SUPER_ADMIN');
     }
 
-    return await this.deleteById(id, deletedBy);
+    // deletedBy ni UUID orqali topish
+    const deletedByUser = await this.repository.findOne({
+      where: { tgId: deletedByTgIdNumber, deletedAt: IsNull() } as any,
+      select: { _id: true },
+    });
+
+    if (!deletedByUser) {
+      throw UserException.NotFound();
+    }
+
+    return await this.deleteById(user._id, deletedByUser._id);
   }
 
   async getPaging(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
@@ -410,10 +437,12 @@ if (query.search) {
     };
   }
 
-  // 🆕 Har qanday user'ni ID orqali olish
-  async getUserById(id: string): Promise<UserDto | null> {
+  // 🆕 Har qanday user'ni tgId orqali olish
+  async getUserById(tgId: number | string): Promise<UserDto | null> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    
     const user = await this.repository.findOne({
-      where: { _id: id, deletedAt: IsNull() } as any,
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
       select: {
         _id: true,
         id: true,
@@ -443,5 +472,102 @@ if (query.search) {
     // Password ni olib tashlash
     const { password, ...userWithoutPassword } = user as any;
     return userWithoutPassword as any;
+  }
+
+  // 🆕 Admin'ni tgId orqali olish
+  async getAdminByTgId(tgId: number | string): Promise<UserDto | null> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    
+    const user = await this.repository.findOne({
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
+      select: {
+        _id: true,
+        id: true,
+        firstName: true,
+        lastName: true,
+        tgFirstName: true,
+        tgLastName: true,
+        tgUsername: true,
+        tgId: true,
+        username: true,
+        phoneNumber: true,
+        email: true,
+        address: true,
+        birthday: true,
+        gender: true,
+        status: true,
+        role: true,
+        createdAt: true,
+        lastUseAt: true,
+      },
+    });
+
+    if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN)) {
+      return null;
+    }
+
+    // Password ni olib tashlash
+    const { password, ...userWithoutPassword } = user as any;
+    return userWithoutPassword as any;
+  }
+
+  // 🆕 Admin'ni tgId orqali update qilish
+  async updateAdminByTgId(tgId: number | string, data: UserDto): Promise<UserDto | null> {
+    const tgIdNumber = typeof tgId === 'string' ? Number(tgId) : tgId;
+    
+    const user = await this.repository.findOne({
+      where: { tgId: tgIdNumber, deletedAt: IsNull() } as any,
+      select: { _id: true, username: true, role: true },
+    });
+
+    if (!user || user.role !== UserRole.ADMIN) {
+      throw UserException.NotFound();
+    }
+
+    if (data.username && user.tgId !== tgIdNumber) {
+      const userByUsername = await this.repository.findOne({
+        where: { username: data.username, deletedAt: IsNull() } as any,
+        select: { _id: true },
+      });
+
+      if (userByUsername) {
+        throw UserException.AllreadyExist('username');
+      }
+    }
+
+    // Update data - faqat kerakli field'larni olish
+    const updateData: Partial<User> = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username: data.username,
+      phoneNumber: data.phoneNumber,
+      email: data.email,
+      address: data.address,
+      birthday: data.birthday ?? null,
+      gender: data.gender,
+      status: data.status,
+      lang: data.lang,
+      tgFirstName: data.tgFirstName,
+      tgLastName: data.tgLastName,
+      tgUsername: data.tgUsername,
+    };
+
+    // Parol yangilangan bo'lsa, shifrlash
+    if (data.password) {
+      if (data.password !== data.confirmPassword) {
+        throw UserException.PasswordsDoNotMatch();
+      }
+      updateData.password = await this.hashPassword(data.password);
+    }
+
+    const updatedUser = await this.findByIdAndUpdate(user._id, updateData);
+
+    if (!updatedUser || !('_id' in updatedUser)) {
+      throw UserException.NotFound();
+    }
+
+    // Password ni qaytarmaslik
+    const { password, ...userWithoutPassword } = updatedUser as any;
+    return { ...userWithoutPassword, _id: updatedUser._id.toString(), id: updatedUser._id.toString() } as any;
   }
 }

@@ -44,6 +44,12 @@ class UserController {
 
   async updateById(req: Request, res: Response) {
     const body = await validateIt(req.body, UserDto, [UserDtoGroup.UPDATE]);
+    const tgId = body.tgId;
+    
+    if (!tgId) {
+      return res.status(400).send({ message: 'tgId is required' });
+    }
+
     body.role = undefined;
 
     if (body.password) {
@@ -54,20 +60,20 @@ class UserController {
       body.password = await this.userService.hashPassword(body.password);
     }
 
-    const user = await this.userService.findByIdAndUpdateUser(body);
+    const user = await this.userService.findByIdAndUpdateUser(tgId, body);
     return res.success(user);
   }
 
   public async getById(req: Request, res: Response) {
-    const id = req.params.id;
+    const tgId = req.params.id;
 
-    if (!isUUID(id)) {
-      return res.status(400).send({ message: 'Invalid user id' });
+    if (!tgId || isNaN(Number(tgId))) {
+      return res.status(400).send({ message: 'Invalid tgId' });
     }
 
-    const user = await this.userService.findById(id);
+    const user = await this.userService.getAdminByTgId(Number(tgId));
 
-    if (!user || (user as any).role !== UserRole.ADMIN) {
+    if (!user) {
       throw UserException.NotFound();
     }
 
@@ -142,15 +148,15 @@ class UserController {
     });
   }
 
-  // 🆕 Har qanday user'ni ID orqali olish
+  // 🆕 Har qanday user'ni tgId orqali olish
   public async getUserById(req: Request, res: Response) {
-    const id = req.params.id;
+    const tgId = req.params.id;
 
-    if (!isUUID(id)) {
-      return res.status(400).send({ message: 'Invalid user id' });
+    if (!tgId || isNaN(Number(tgId))) {
+      return res.status(400).send({ message: 'Invalid tgId' });
     }
 
-    const user = await this.userService.getUserById(id);
+    const user = await this.userService.getUserById(Number(tgId));
 
     if (!user) {
       throw UserException.NotFound();
@@ -160,62 +166,65 @@ class UserController {
   }
 
   public async deleteById(req: Request, res: Response) {
-    const id = req.params.id;
+    const tgId = req.params.id;
 
-    if (!isUUID(id)) {
-      return res.status(400).json({ error: 'invalid id' });
+    if (!tgId || isNaN(Number(tgId))) {
+      return res.status(400).json({ error: 'invalid tgId' });
     }
 
-    if (req.user?._id === id) {
+    const tgIdNumber = Number(tgId);
+    
+    // Foydalanuvchi o'zini o'chirishni tekshirish - current user'ning tgId'ini topish
+    const currentUser = await this.userService.findById(req.user?._id);
+    if (currentUser && (currentUser as any).tgId === tgIdNumber) {
       throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
     }
 
-    const user = await this.userService.findById(id);
+    const user = await this.userService.getAdminByTgId(tgIdNumber);
 
-    if (!user || (user as any).role !== UserRole.ADMIN) {
+    if (!user) {
       throw UserException.NotFound();
     }
 
-    await this.userService.deleteById(id, req.user._id);
+    await this.userService.deleteById(user._id, req.user._id);
 
-    return res.success({ id: id });
+    return res.success({ tgId: tgId });
   }
 
   // 🆕 Umumiy user update qilish (USER, ADMIN uchun)
   public async updateAnyUser(req: Request, res: Response) {
     const body = await validateIt(req.body, UserDto, [UserDtoGroup.UPDATE]);
-    const id = req.params.id;
+    const tgId = req.params.id;
     
-    if (!id || !isUUID(id)) {
-      return res.status(400).send({ message: 'Invalid user id' });
+    if (!tgId || isNaN(Number(tgId))) {
+      return res.status(400).send({ message: 'Invalid tgId' });
     }
-
-    // Route parametridan _id ni olish
-    body._id = id;
 
     // Role o'zgartirish faqat SUPER_ADMIN uchun
     const allowRoleChange = req.user?.role === UserRole.SUPER_ADMIN;
     body.role = allowRoleChange ? body.role : undefined;
 
-    const user = await this.userService.updateAnyUser(body, allowRoleChange);
+    const user = await this.userService.updateAnyUser(Number(tgId), body, allowRoleChange);
     return res.success(user);
   }
 
   // 🆕 Umumiy user delete qilish (USER, ADMIN uchun)
   public async deleteAnyUser(req: Request, res: Response) {
-    const id = req.params.id;
+    const tgId = req.params.id;
 
-    if (!isUUID(id)) {
-      return res.status(400).json({ error: 'invalid id' });
+    if (!tgId || isNaN(Number(tgId))) {
+      return res.status(400).json({ error: 'invalid tgId' });
     }
 
-    if (req.user?._id === id) {
-      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
-    }
+    const tgIdNumber = Number(tgId);
+    
+    // Current user'ning tgId'ini topish
+    const currentUser = await this.userService.findById(req.user?._id);
+    const currentUserTgId = currentUser ? (currentUser as any).tgId : null;
 
-    await this.userService.deleteAnyUser(id, req.user!._id);
+    await this.userService.deleteAnyUser(tgIdNumber, currentUserTgId);
 
-    return res.success({ id: id });
+    return res.success({ tgId: tgId });
   }
 
   //! 🧩 Auth
