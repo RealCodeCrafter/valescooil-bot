@@ -30,10 +30,18 @@ async function registerUserName(ctx: MyContext) {
   let user = await userRepository.findOne({ where: { tgId: ctx.from?.id } as any });
 
   if (user) {
-    await userRepository.update(user._id, { firstName: text });
+    // Admin ID'ni tekshirish va role ni yangilash
+    const isUserAdmin = isAdmin(ctx.from?.id);
+    const updateData: any = { firstName: text };
+    if (isUserAdmin && user.role !== UserRole.ADMIN) {
+      updateData.role = UserRole.ADMIN;
+    }
+    await userRepository.update(user._id, updateData);
     ctx.session.user.db_id = user._id.toString();
   } else {
     const count = await userRepository.count();
+    // Admin ID'ni tekshirish
+    const isUserAdmin = isAdmin(ctx.from?.id);
     const newUser = userRepository.create({
       id: count + 1,
       tgId: ctx.from?.id,
@@ -43,7 +51,7 @@ async function registerUserName(ctx: MyContext) {
       lang: ctx.session.user.lang || 'uz',
       phoneNumber: '',
       lastUseAt: new Date(),
-      role: UserRole.USER,
+      role: isUserAdmin ? UserRole.ADMIN : UserRole.USER,
     });
     const saved = await userRepository.save(newUser);
     ctx.session.user.db_id = saved._id.toString();
@@ -78,13 +86,21 @@ async function registerUserPhoneNumber(ctx: MyContext) {
   let user = await userRepository.findOne({ where: { tgId: ctx.from?.id } as any });
 
   if (user) {
-    await userRepository.update(user._id, {
+    // Admin ID'ni tekshirish va role ni yangilash
+    const isUserAdmin = isAdmin(ctx.from?.id);
+    const updateData: any = {
       phoneNumber: phone,
       firstName: ctx.session.user.first_name || user.firstName || '',
-    });
+    };
+    if (isUserAdmin && user.role !== UserRole.ADMIN) {
+      updateData.role = UserRole.ADMIN;
+    }
+    await userRepository.update(user._id, updateData);
     ctx.session.user.db_id = user._id.toString();
   } else {
     const count = await userRepository.count();
+    // Admin ID'ni tekshirish
+    const isUserAdmin = isAdmin(ctx.from?.id);
     const newUser = userRepository.create({
       id: count + 1,
       tgId: ctx.from?.id,
@@ -94,7 +110,7 @@ async function registerUserPhoneNumber(ctx: MyContext) {
       lang: ctx.session.user.lang || 'uz',
       phoneNumber: phone,
       lastUseAt: new Date(),
-      role: UserRole.USER,
+      role: isUserAdmin ? UserRole.ADMIN : UserRole.USER,
     });
     const saved = await userRepository.save(newUser);
     ctx.session.user.db_id = saved._id.toString();
