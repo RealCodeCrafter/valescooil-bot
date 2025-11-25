@@ -14,10 +14,12 @@ class UserController {
   constructor() {
     this.create = this.create.bind(this);
     this.updateById = this.updateById.bind(this);
+    this.updateAnyUser = this.updateAnyUser.bind(this);
     this.getById = this.getById.bind(this);
     this.getMe = this.getMe.bind(this);
     this.getAll = this.getAll.bind(this);
     this.deleteById = this.deleteById.bind(this);
+    this.deleteAnyUser = this.deleteAnyUser.bind(this);
     this.login = this.login.bind(this);
     this.authorizeUser = this.authorizeUser.bind(this);
     this.refreshToken = this.refreshToken.bind(this);
@@ -127,6 +129,43 @@ class UserController {
     }
 
     await this.userService.deleteById(id, req.user._id);
+
+    return res.success({ id: id });
+  }
+
+  // 🆕 Umumiy user update qilish (USER, ADMIN uchun)
+  public async updateAnyUser(req: Request, res: Response) {
+    const body = await validateIt(req.body, UserDto, [UserDtoGroup.UPDATE]);
+    const id = req.params.id;
+    
+    if (!id || !isUUID(id)) {
+      return res.status(400).send({ message: 'Invalid user id' });
+    }
+
+    // Route parametridan _id ni olish
+    body._id = id;
+
+    // Role o'zgartirish faqat SUPER_ADMIN uchun
+    const allowRoleChange = req.user?.role === UserRole.SUPER_ADMIN;
+    body.role = allowRoleChange ? body.role : undefined;
+
+    const user = await this.userService.updateAnyUser(body, allowRoleChange);
+    return res.success(user);
+  }
+
+  // 🆕 Umumiy user delete qilish (USER, ADMIN uchun)
+  public async deleteAnyUser(req: Request, res: Response) {
+    const id = req.params.id;
+
+    if (!isUUID(id)) {
+      return res.status(400).json({ error: 'invalid id' });
+    }
+
+    if (req.user?._id === id) {
+      throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
+    }
+
+    await this.userService.deleteAnyUser(id, req.user!._id);
 
     return res.success({ id: id });
   }

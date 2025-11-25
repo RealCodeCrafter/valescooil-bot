@@ -4,15 +4,17 @@ import { runAsyncWrapper } from '../../common/utility/run-async-wrapper';
 import { UserRole } from '../../db/entities/user.entity';
 
 const requireSuperAdmin = userController.authorizeRoles(UserRole.SUPER_ADMIN);
+const requireAdmin = userController.authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN);
 
 const usersRouter = Router()
   .post('/', userController.authorizeUser, requireSuperAdmin, runAsyncWrapper(userController.create))
   .post('/login', runAsyncWrapper(userController.login))
   .put('/', userController.authorizeUser, requireSuperAdmin, runAsyncWrapper(userController.updateById))
-  .get('/me', userController.authorizeUser, runAsyncWrapper(userController.getMe))
-  .post('/update-token', userController.authorizeUser, runAsyncWrapper(userController.refreshToken))
+  .put('/:id', userController.authorizeUser, requireAdmin, runAsyncWrapper(userController.updateAnyUser))
+  .get('/me', userController.authorizeUser, requireAdmin, runAsyncWrapper(userController.getMe))
+  .post('/update-token', userController.authorizeUser, requireAdmin, runAsyncWrapper(userController.refreshToken))
   .get('/:id', userController.authorizeUser, requireSuperAdmin, runAsyncWrapper(userController.getById))
   .get('/', userController.authorizeUser, requireSuperAdmin, runAsyncWrapper(userController.getAll))
-  .delete('/:id', userController.authorizeUser, requireSuperAdmin, runAsyncWrapper(userController.deleteById));
+  .delete('/:id', userController.authorizeUser, requireAdmin, runAsyncWrapper(userController.deleteAnyUser));
 
 export { usersRouter };

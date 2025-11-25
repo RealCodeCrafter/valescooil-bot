@@ -122,6 +122,89 @@ export class UserService extends UserAuthService<UserDto> {
     return { ...userWithoutPassword, _id: newUser._id.toString(), id: newUser._id.toString() } as any;
   }
 
+  // 🆕 Umumiy user update qilish (USER, ADMIN, SUPER_ADMIN)
+  async updateAnyUser(data: UserDto, allowRoleChange: boolean = false): Promise<UserDto | null> {
+    const user = await this.repository.findOne({
+      where: { _id: data._id, deletedAt: IsNull() } as any,
+      select: { _id: true, username: true, role: true },
+    });
+
+    if (!user) {
+      throw UserException.NotFound();
+    }
+
+    // Username takrorlanmasligini tekshirish
+    if (data.username && data._id.toString() !== user._id.toString()) {
+      const userByUsername = await this.repository.findOne({
+        where: { username: data.username, deletedAt: IsNull() } as any,
+        select: { _id: true },
+      });
+
+      if (userByUsername) {
+        throw UserException.AllreadyExist('username');
+      }
+    }
+
+    // Update data - faqat kerakli field'larni olish
+    const updateData: Partial<User> = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username: data.username,
+      phoneNumber: data.phoneNumber,
+      email: data.email,
+      address: data.address,
+      birthday: data.birthday ?? null,
+      gender: data.gender,
+      status: data.status,
+      lang: data.lang,
+      tgFirstName: data.tgFirstName,
+      tgLastName: data.tgLastName,
+      tgUsername: data.tgUsername,
+    };
+
+    // Role o'zgartirish faqat ruxsat berilganda
+    if (allowRoleChange && data.role) {
+      updateData.role = data.role;
+    }
+
+    // Parol yangilangan bo'lsa, shifrlash
+    if (data.password) {
+      if (data.password !== data.confirmPassword) {
+        throw UserException.PasswordsDoNotMatch();
+      }
+      updateData.password = await this.hashPassword(data.password);
+    }
+
+    const updatedUser = await this.findByIdAndUpdate(data._id, updateData);
+
+    if (!updatedUser || !('_id' in updatedUser)) {
+      throw UserException.NotFound();
+    }
+
+    // Password ni qaytarmaslik
+    const { password, ...userWithoutPassword } = updatedUser as any;
+    return { ...userWithoutPassword, _id: updatedUser._id.toString(), id: updatedUser._id.toString() } as any;
+  }
+
+  // 🆕 Umumiy user delete qilish (USER, ADMIN, SUPER_ADMIN)
+  async deleteAnyUser(id: string, deletedBy: string): Promise<string> {
+    const user = await this.repository.findOne({
+      where: { _id: id, deletedAt: IsNull() } as any,
+      select: { _id: true, role: true },
+    });
+
+    if (!user) {
+      throw UserException.NotFound();
+    }
+
+    // SUPER_ADMIN ni o'chirishni taqiqlash
+    if (user.role === UserRole.SUPER_ADMIN) {
+      throw UserException.NotEnoughPermission('Cannot delete SUPER_ADMIN');
+    }
+
+    return await this.deleteById(id, deletedBy);
+  }
+
   async getPaging(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
     const where: any = { deletedAt: IsNull(), role: UserRole.ADMIN };
     

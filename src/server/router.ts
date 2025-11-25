@@ -8,6 +8,9 @@ import { filesRouter } from './file/routes';
 import { codesRouter } from './codes/routes';
 import { codesController } from './codes/controller';
 import { dashboardRouter } from './dashboard/routes';
+import { UserRole } from '../db/entities/user.entity';
+
+const requireAdmin = userController.authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN);
 
 const router = Router()
   .get(
@@ -16,12 +19,12 @@ const router = Router()
       res.success({ message: "I'm OK. THANKS" });
     }),
   )
-  .use('/dashboard', dashboardRouter)
-  .use('/files', filesRouter)
+  .use('/dashboard', userController.authorizeUser, requireAdmin, dashboardRouter)
+  .use('/files', userController.authorizeUser, requireAdmin, filesRouter)
   .use('/users', usersRouter)
-  .use('/gifts', userController.authorizeUser, giftsRouter)
-  .use('/codes', userController.authorizeUser, codesRouter)
-  .post('/check-code', runAsyncWrapper(codesController.checkCode));
+  .use('/gifts', userController.authorizeUser, requireAdmin, giftsRouter)
+  .use('/codes', userController.authorizeUser, requireAdmin, codesRouter)
+  .post('/check-code', userController.authorizeUser, requireAdmin, runAsyncWrapper(codesController.checkCode));
 
 // // 404 Error
 router.all('*', (_req, _res, _next) => {
