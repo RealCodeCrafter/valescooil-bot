@@ -1,0 +1,946 @@
+{
+	"info": {
+		"_postman_id": "valesco-bot-api",
+		"name": "Valesco Bot API",
+		"description": "Complete API collection for Valesco Bot",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4001",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tgId",
+			"value": "5661241603",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Check Health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/check-health",
+							"host": ["{{baseUrl}}"],
+							"path": ["check-health"]
+						},
+						"description": "Server health check endpoint"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"super_admin\",\n  \"password\": \"ChangeMe123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "login"]
+						},
+						"description": "User login - returns accessToken and refreshToken"
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.accessToken) {",
+									"        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+									"        pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken || '');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create User (SUPER_ADMIN)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tgId\": 1234567890,\n  \"username\": \"newadmin\",\n  \"password\": \"password123\",\n  \"confirmPassword\": \"password123\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Admin\",\n  \"tgFirstName\": \"New\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ""]
+						},
+						"description": "Create new admin user (SUPER_ADMIN only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Admin (SUPER_ADMIN)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tgId\": {{tgId}},\n  \"firstName\": \"Updated Name\",\n  \"lastName\": \"Updated Last\",\n  \"phoneNumber\": \"998901234567\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ""]
+						},
+						"description": "Update admin by tgId in body (SUPER_ADMIN only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User/Admin (ADMIN)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated Name\",\n  \"phoneNumber\": \"998901234567\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{tgId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{tgId}}"]
+						},
+						"description": "Update any user or admin by tgId (ADMIN/SUPER_ADMIN)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "me"]
+						},
+						"description": "Get current logged in user profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/update-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "update-token"]
+						},
+						"description": "Refresh access token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (USER role)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/users/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "users", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all users with USER role (pagination supported)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Admins",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/admins/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "admins", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all admins (ADMIN and SUPER_ADMIN roles)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by tgId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/user/{{tgId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "user", "{{tgId}}"]
+						},
+						"description": "Get any user by tgId (Telegram ID)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin by tgId (SUPER_ADMIN)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{tgId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{tgId}}"]
+						},
+						"description": "Get admin by tgId (SUPER_ADMIN only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Admins List (SUPER_ADMIN)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ""],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all admins list with codes (SUPER_ADMIN only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User/Admin",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{tgId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{tgId}}"]
+						},
+						"description": "Delete user or admin by tgId (hard delete from database)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Gifts",
+			"item": [
+				{
+					"name": "Create Gift",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Gift\",\n  \"type\": \"premium\",\n  \"image\": \"https://example.com/image.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/gifts/",
+							"host": ["{{baseUrl}}"],
+							"path": ["gifts", ""]
+						},
+						"description": "Create new gift"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Gift",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"_id\": \"gift-id-here\",\n  \"name\": \"Updated Gift Name\",\n  \"type\": \"standard\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/gifts/",
+							"host": ["{{baseUrl}}"],
+							"path": ["gifts", ""]
+						},
+						"description": "Update gift by _id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Gifts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/gifts/",
+							"host": ["{{baseUrl}}"],
+							"path": ["gifts", ""]
+						},
+						"description": "Get all gifts"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Gift by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/gifts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["gifts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "gift-id-here"
+								}
+							]
+						},
+						"description": "Get gift by _id"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Gift",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/gifts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["gifts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "gift-id-here"
+								}
+							]
+						},
+						"description": "Delete gift by _id"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Codes",
+			"item": [
+				{
+					"name": "Get All Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", ""]
+						},
+						"description": "Get all codes"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Code by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "code-id-here"
+								}
+							]
+						},
+						"description": "Get code by _id"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Codes Used by User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/usedByUser/:usedById",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "usedByUser", ":usedById"],
+							"variable": [
+								{
+									"key": "usedById",
+									"value": "user-uuid-here"
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all codes used by specific user"
+					},
+					"response": []
+				},
+				{
+					"name": "Give Gift to Code",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"giftId\": \"gift-id-here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/codes/gift-give/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "gift-give", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "code-id-here"
+								}
+							]
+						},
+						"description": "Assign gift to code"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Winners",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/winners/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "winners", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all winners (codes used by winners)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Winner by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/winners/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "winners", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "winner-id-here"
+								}
+							]
+						},
+						"description": "Get winner by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Losers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/losers/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "losers", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all losers (codes used but not in winners.json)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Loser by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/losers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "losers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "loser-id-here"
+								}
+							]
+						},
+						"description": "Get loser by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Winner Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/winner-codes/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "winner-codes", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all winner codes (codes from winners.json)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Winner Code by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/winner-codes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "winner-codes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "winner-code-id-here"
+								}
+							]
+						},
+						"description": "Get winner code by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Non-Winner Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/non-winner-codes/all?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "non-winner-codes", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all non-winner codes (codes in DB but not in winners.json)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Non-Winner Code by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/non-winner-codes/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "non-winner-codes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "non-winner-code-id-here"
+								}
+							]
+						},
+						"description": "Get non-winner code by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Code Month",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/code-month?code=ABC123",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "code-month"],
+							"query": [
+								{
+									"key": "code",
+									"value": "ABC123"
+								}
+							]
+						},
+						"description": "Get month for a specific code"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Codes by Month",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/codes/by-month/:month",
+							"host": ["{{baseUrl}}"],
+							"path": ["codes", "by-month", ":month"],
+							"variable": [
+								{
+									"key": "month",
+									"value": "2024-01"
+								}
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get codes by specific month"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"value\": \"ABC123DEF456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/check-code",
+							"host": ["{{baseUrl}}"],
+							"path": ["check-code"]
+						},
+						"description": "Check if code is valid and available"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "Upload File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/files/:type",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", ":type"],
+							"variable": [
+								{
+									"key": "type",
+									"value": "image",
+									"description": "File type: image, document, etc."
+								}
+							]
+						},
+						"description": "Upload file by type"
+					},
+					"response": []
+				},
+				{
+					"name": "Get File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/files/:bucketName/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", ":bucketName", ":id"],
+							"variable": [
+								{
+									"key": "bucketName",
+									"value": "bucket-name"
+								},
+								{
+									"key": "id",
+									"value": "file-id"
+								}
+							]
+						},
+						"description": "Get file by bucket name and ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Dashboard",
+			"item": [
+				{
+					"name": "Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "analytics"]
+						},
+						"description": "Get analytics data"
+					},
+					"response": []
+				},
+				{
+					"name": "Overview Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "overview"]
+						},
+						"description": "Get overview summary"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/clients",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "clients"]
+						},
+						"description": "Get all clients"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Gift Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/gifts/codes",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "gifts", "codes"]
+						},
+						"description": "Get gift codes for dashboard"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/codes",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "codes"]
+						},
+						"description": "Get codes for dashboard"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Codes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard/codes/search?query=ABC",
+							"host": ["{{baseUrl}}"],
+							"path": ["dashboard", "codes", "search"],
+							"query": [
+								{
+									"key": "query",
+									"value": "ABC"
+								}
+							]
+						},
+						"description": "Search codes"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
+
+

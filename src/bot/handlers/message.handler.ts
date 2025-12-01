@@ -62,6 +62,10 @@ async function registerUserName(ctx: MyContext) {
   ctx.session.is_editable_message = false;
   ctx.session.is_editable_image = false;
 
+  // Session'dan tilni o'rnatish
+  const lang = ctx.session.user.lang || 'uz';
+  ctx.i18n.locale(lang);
+
   return ctx.reply(ctx.i18n.t('auth.requestPhoneNumber'), {
     reply_markup: contactRequestKeyboard(ctx.i18n.t('auth.sendContact')),
     parse_mode: 'HTML',
@@ -72,6 +76,10 @@ async function registerUserName(ctx: MyContext) {
 // 2) TELEFON RAQAM QABUL QILISH
 // ======================
 async function registerUserPhoneNumber(ctx: MyContext) {
+  // Session'dan tilni o'rnatish
+  const lang = ctx.session.user.lang || 'uz';
+  ctx.i18n.locale(lang);
+
   const text = ctx.message?.text?.replace(/\s+/g, '').replace('+', '');
   const contact = ctx.message?.contact;
   let phone = '';

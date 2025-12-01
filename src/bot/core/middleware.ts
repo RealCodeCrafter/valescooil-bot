@@ -47,17 +47,21 @@ async function registerUserLang(ctx: MyContext) {
   });
 }
 
-// Ism so‘rash
+// Ism so'rash
 export async function registerUserFirstName(ctx: MyContext) {
   ctx.session.user_state = 'REGISTER_NAME';
   ctx.session.is_editable_message = false;
   ctx.session.is_editable_image = false;
   
+  // Session'dan tilni o'rnatish
+  const lang = ctx.session.user.lang || 'uz';
+  ctx.i18n.locale(lang);
+  
   // Ism so'rash xabarini yuborish (agar forwardMessage ishlamasa, oddiy reply)
   try {
-    const nameMessageId = messageIds[ctx.i18n.languageCode as BotLanguage].auth.requestName;
+    const nameMessageId = messageIds[lang as BotLanguage].auth.requestName;
     // Agar nameMessageId va start bir xil bo'lsa, oddiy reply yuboramiz
-    if (nameMessageId === messageIds[ctx.i18n.languageCode as BotLanguage].start) {
+    if (nameMessageId === messageIds[lang as BotLanguage].start) {
       return await ctx.reply(ctx.i18n.t('auth.requestName'), { parse_mode: 'HTML' });
     }
     return await ctx.api.forwardMessage(
