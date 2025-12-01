@@ -15,7 +15,8 @@ import { IsNull, In } from 'typeorm';
 
 type GiftTier = 'premium' | 'standard' | 'economy' | 'symbolic';
 
-const norm = (s: string) => (s || '').trim().toUpperCase().replace(/-/g, '');
+// Normalize funksiyasi - barcha maxsus belgilarni olib tashlaydi (document.handler.ts bilan bir xil)
+const norm = (s: string) => (s || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 const hyphenize = (s: string) =>
   s.includes('-') ? s : s.length > 6 ? s.slice(0, 6) + '-' + s.slice(6) : s;
 
@@ -141,7 +142,9 @@ async function registerUserPhoneNumber(ctx: MyContext) {
 // 3) KOD TEKSHIRISH
 // ======================
 async function checkCode(ctx: MyContext) {
-  const lang = ctx.i18n.languageCode as BotLanguage;
+  // Session'dan tilni o'rnatish
+  const lang = (ctx.session.user.lang || ctx.i18n.languageCode || 'uz') as BotLanguage;
+  ctx.i18n.locale(lang);
 
   const MESSAGES: Record<BotLanguage, Record<string, string>> = {
     uz: { invalidFormat: '❌ Noto\'g\'ri kod formati kiritdingiz.' },

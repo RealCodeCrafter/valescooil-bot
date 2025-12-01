@@ -38,9 +38,12 @@ export const i18n = new I18n({
   useSession: true,
 });
 
-// Til so‘rash
+// Til so'rash
 async function registerUserLang(ctx: MyContext) {
   ctx.session.user_state = 'REGISTER_LANG';
+  // Session'dan tilni o'rnatish
+  const lang = ctx.session.user.lang || 'uz';
+  ctx.i18n.locale(lang);
   return await ctx.reply(ctx.i18n.t('auth.requestChooseLang'), {
     reply_markup: chooseLang,
     parse_mode: 'HTML',
@@ -102,6 +105,7 @@ export const checkUserMiddleWare = async (ctx: MyContext, next: NextFunction) =>
       ctx.session.user.db_id = '';
       ctx.session.user.first_name = ctx.from?.first_name || '';
       ctx.session.user.lang = 'uz';
+      ctx.i18n.locale('uz');
     } else {
       // Mavjud foydalanuvchi
       ctx.session.user.db_id = user._id.toString();
@@ -159,8 +163,11 @@ export const checkUserMiddleWare = async (ctx: MyContext, next: NextFunction) =>
   if (!user.phoneNumber) {
     if (ctx.session.user_state === 'REGISTER_PHONE_NUMBER' && (ctx.message?.contact || (ctx.message?.text && !ctx.message.text.includes('/')))) return next();
     ctx.session.user_state = 'REGISTER_PHONE_NUMBER';
+    // Session'dan tilni o'rnatish
+    const lang = ctx.session.user.lang || 'uz';
+    ctx.i18n.locale(lang);
     return await ctx.reply(ctx.i18n.t('auth.requestPhoneNumber'), {
-      reply_markup: contactRequestKeyboard(ctx.i18n.t('auth.requestPhoneNumber')),
+      reply_markup: contactRequestKeyboard(ctx.i18n.t('auth.sendContact')),
       parse_mode: 'HTML',
     });
   }

@@ -41,7 +41,7 @@ export class CodeLog {
   @JoinColumn({ name: 'codeId' })
   code?: Code;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;
 }

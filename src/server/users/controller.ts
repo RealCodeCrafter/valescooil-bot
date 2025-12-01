@@ -209,15 +209,26 @@ class UserController {
       return res.status(400).json({ error: 'invalid tgId' });
     }
 
+    if (!req.user?._id) {
+      return res.status(401).json(UserException.Unauthorized());
+    }
+
     const tgIdNumber = Number(tgId);
     
     // Current user'ning tgId'ini topish
-    const currentUser = await this.userService.findById(req.user?._id);
-    const currentUserTgId = currentUser ? (currentUser as any).tgId : null;
+    try {
+      const currentUser = await this.userService.findById(req.user._id);
+      const currentUserTgId = currentUser ? (currentUser as any).tgId : null;
 
-    await this.userService.deleteAnyUser(tgIdNumber, currentUserTgId);
+      await this.userService.deleteAnyUser(tgIdNumber, currentUserTgId);
 
-    return res.success({ tgId: tgId });
+      return res.success({ tgId: tgId });
+    } catch (error: any) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json(error);
+      }
+      throw error;
+    }
   }
 
   //! 🧩 Auth

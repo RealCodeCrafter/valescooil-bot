@@ -237,8 +237,6 @@ export class UserService extends UserAuthService<UserDto> {
     }
 
     // deletedBy ni UUID orqali topish
-    let deletedByUuid: string | null = null;
-    
     if (deletedByTgId !== null && deletedByTgId !== undefined) {
       const deletedByTgIdNumber = typeof deletedByTgId === 'string' ? Number(deletedByTgId) : deletedByTgId;
       
@@ -247,16 +245,14 @@ export class UserService extends UserAuthService<UserDto> {
         throw UserException.CannotDeleteYourSelf(StatusCodes.FORBIDDEN);
       }
 
+      // O'chiruvchi user'ni tekshirish (agar topilmasa, xatolik emas, chunki hard delete qilinmoqda)
       const deletedByUser = await this.repository.findOne({
         where: { tgId: deletedByTgIdNumber, deletedAt: IsNull() } as any,
         select: { _id: true },
       });
 
-      if (!deletedByUser) {
-        throw UserException.NotFound();
-      }
-
-      deletedByUuid = deletedByUser._id;
+      // Agar o'chiruvchi user topilmasa, bu xatolik emas, chunki hard delete qilinmoqda
+      // Faqat o'zini o'chirishni taqiqlash uchun tekshiriladi
     }
 
     // HARD DELETE - bazadan to'liq o'chirish

@@ -66,7 +66,7 @@ export class Code {
   @JoinColumn({ name: 'giftId' })
   gift?: Gift;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'usedById' })
   usedBy?: User;
 
