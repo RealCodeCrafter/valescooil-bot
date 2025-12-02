@@ -108,44 +108,29 @@ class UserController {
   }
 
   public async getAll(req: Request, res: Response) {
-    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, GetUsersRequestDto, []);
 
-    const data = await this.userService.getPaging(query);
+    const data = await this.userService.getAll(query);
 
-    return res.success(data.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: data.total,
-      pageCount: Math.ceil(data.total / query.limit),
-    });
+    return res.success(data);
   }
 
   // 🆕 Userlarni hammasini olish (USER role)
   public async getAllUsers(req: Request, res: Response) {
-    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, GetUsersRequestDto, []);
 
     const data = await this.userService.getAllUsers(query);
 
-    return res.success(data.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: data.total,
-      pageCount: Math.ceil(data.total / query.limit),
-    });
+    return res.success(data);
   }
 
   // 🆕 Adminlarni hammasini olish (ADMIN va SUPER_ADMIN)
   public async getAllAdmins(req: Request, res: Response) {
-    const query = await validateIt(req.query, GetUsersRequestDto, [CommonDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, GetUsersRequestDto, []);
 
     const data = await this.userService.getAllAdmins(query);
 
-    return res.success(data.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: data.total,
-      pageCount: Math.ceil(data.total / query.limit),
-    });
+    return res.success(data);
   }
 
   // 🆕 Har qanday user'ni tgId orqali olish

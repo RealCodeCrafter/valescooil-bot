@@ -44,30 +44,19 @@ class CodeController {
   }
 
   public async getAll(req: Request, res: Response) {
-    const query = await validateIt(req.query, CodePagingDto, [CodeDtoGroup.PAGINATION]);
-    const codes = await this.codesService.getPaging(query);
+    const query = await validateIt(req.query, CodePagingDto, []);
+    const codes = await this.codesService.getAll(query);
 
-    return res.success(codes.data, {
-      currentPage: query.page,
-      totalData: codes.total,
-      totalUsedCount: codes.totalUsedCount,
-      totalPages: Math.ceil(codes.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(codes);
   }
 
   public async getUsedBy(req: Request, res: Response) {
     const param = await validateIt(req.params, CodeDto, [CodeDtoGroup.GET_USED_BY_USER_ID]);
-    const query = await validateIt(req.query, PagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, PagingDto, []);
 
-    const codes = await this.codesService.getUsedByUserPaging(query, param.usedById);
+    const codes = await this.codesService.getUsedByUser(query, param.usedById);
 
-    return res.success(codes.data, {
-      currentPage: query.page,
-      totalData: codes.total,
-      totalPages: Math.ceil(codes.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(codes);
   }
 
   public async checkCode(req: Request, res: Response) {
@@ -79,15 +68,10 @@ class CodeController {
 
   // G'oliblar - winners.json dagi kodlar bilan ishlatilgan kodlar
   public async getWinners(req: Request, res: Response) {
-    const query = await validateIt(req.query, PagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, PagingDto, []);
     const result = await this.codesService.getWinners(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      totalData: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(result);
   }
 
   public async getWinnerById(req: Request, res: Response) {
@@ -102,15 +86,10 @@ class CodeController {
 
   // Mag'lublar - winners.json da yo'q, lekin bazada bor va ishlatilgan kodlar
   public async getLosers(req: Request, res: Response) {
-    const query = await validateIt(req.query, PagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, PagingDto, []);
     const result = await this.codesService.getLosers(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      totalData: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(result);
   }
 
   public async getLoserById(req: Request, res: Response) {
@@ -125,15 +104,10 @@ class CodeController {
 
   // Winner kodlar - winners.json dagi kodlar
   public async getWinnerCodes(req: Request, res: Response) {
-    const query = await validateIt(req.query, PagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, PagingDto, []);
     const result = await this.codesService.getWinnerCodes(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      totalData: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(result);
   }
 
   public async getWinnerCodeById(req: Request, res: Response) {
@@ -148,15 +122,10 @@ class CodeController {
 
   // Yutuqsiz kodlar - bazada bor, lekin winners.json da yo'q kodlar
   public async getNonWinnerCodes(req: Request, res: Response) {
-    const query = await validateIt(req.query, PagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, PagingDto, []);
     const result = await this.codesService.getNonWinnerCodes(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      totalData: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(result);
   }
 
   public async getNonWinnerCodeById(req: Request, res: Response) {
@@ -185,15 +154,10 @@ class CodeController {
     message: 'Month parameter is required'
   });
 }
-    const query = await validateIt(req.query, CodePagingDto, [CodeDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, CodePagingDto, []);
     const codes = await this.codesService.getCodesByMonth(query, month);
 
-    return res.success(codes.data, {
-      currentPage: query.page,
-      totalData: codes.total,
-      totalPages: Math.ceil(codes.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(codes);
   }
 }
 

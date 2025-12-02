@@ -42,7 +42,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
     return result;
   }
 
-  async getPaging(query: CodePagingDto): Promise<{ data: CodeDto[]; total: number; totalUsedCount: number }> {
+  async getAll(query: CodePagingDto): Promise<CodeDto[]> {
     const where: any = { deletedAt: IsNull() };
 
     if (query.isUsed === true || query.isUsed === false) {
@@ -66,10 +66,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['gift', 'usedBy'],
       select: {
@@ -99,22 +96,12 @@ export class CodeService extends BaseService<Code, CodeDto> {
       },
       },
       order: { usedAt: 'DESC', id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    const totalUsedCount = await this.repository.count({
-      where: { deletedAt: IsNull(), isUsed: true, usedAt: Not(IsNull()) },
-    });
-
-    return {
-      data: data as any,
-      total,
-      totalUsedCount,
-    };
+    return data as any;
   }
 
-  async getUsedByUserPaging(query: PagingDto, usedById: string): Promise<{ data: CodeDto[]; total: number }> {
+  async getUsedByUser(query: PagingDto, usedById: string): Promise<CodeDto[]> {
     const where: any = {
       deletedAt: IsNull(),
       usedById: usedById,
@@ -129,14 +116,11 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     const orderType = query.orderType === 'ASC' ? 'ASC' : 'DESC';
     const orderBy = query.orderBy || 'id';
     const order: any = { [orderBy]: orderType };
 
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['gift'],
       select: {
@@ -159,14 +143,9 @@ export class CodeService extends BaseService<Code, CodeDto> {
             },
           },
       order,
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 
   async checkCode(value: string) {
@@ -203,7 +182,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
   }
 
   // G'oliblar - WinnerModel dagi kodlar bilan ishlatilgan kodlar
-  async getWinners(query: PagingDto): Promise<{ data: any[]; total: number }> {
+  async getWinners(query: PagingDto): Promise<any[]> {
     const allWinners = await this.winnerRepository.find({
       where: { deletedAt: IsNull() } as any,
       select: { value: true },
@@ -235,10 +214,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['usedBy', 'gift'],
       select: {
@@ -267,18 +243,13 @@ export class CodeService extends BaseService<Code, CodeDto> {
       },
       },
       order: { usedAt: 'DESC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 
   // Mag'lublar - WinnerModel da yo'q, lekin CodeModel da bor va ishlatilgan kodlar
-  async getLosers(query: PagingDto): Promise<{ data: any[]; total: number }> {
+  async getLosers(query: PagingDto): Promise<any[]> {
     const allWinners = await this.winnerRepository.find({
       where: { deletedAt: IsNull() } as any,
       select: { value: true },
@@ -308,10 +279,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['usedBy'],
       select: {
@@ -331,18 +299,13 @@ export class CodeService extends BaseService<Code, CodeDto> {
       },
       },
       order: { usedAt: 'DESC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 
   // Winner kodlar - WinnerModel dagi kodlar (bazada bor)
-  async getWinnerCodes(query: PagingDto): Promise<{ data: any[]; total: number }> {
+  async getWinnerCodes(query: PagingDto): Promise<any[]> {
     const allWinners = await this.winnerRepository.find({
       where: { deletedAt: IsNull() } as any,
       select: { value: true },
@@ -373,10 +336,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['gift', 'usedBy'],
       select: {
@@ -405,18 +365,13 @@ export class CodeService extends BaseService<Code, CodeDto> {
       },
       },
       order: { id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 
   // Yutuqsiz kodlar - bazada bor, lekin WinnerModel da yo'q kodlar
-  async getNonWinnerCodes(query: PagingDto): Promise<{ data: any[]; total: number }> {
+  async getNonWinnerCodes(query: PagingDto): Promise<any[]> {
     const allWinners = await this.winnerRepository.find({
       where: { deletedAt: IsNull() } as any,
       select: { value: true },
@@ -445,10 +400,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['usedBy'],
       select: {
@@ -469,14 +421,9 @@ export class CodeService extends BaseService<Code, CodeDto> {
         },
       },
       order: { id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 
   // Kod kiritib GET qilganda qaysi oyga tegishli ekanligini qaytaradi
@@ -505,7 +452,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
   }
 
   // Oy tanlansa shu oyga tegishli kodlar chiqadi
-  async getCodesByMonth(query: PagingDto, month: string): Promise<{ data: any[]; total: number }> {
+  async getCodesByMonth(query: PagingDto, month: string): Promise<any[]> {
     const where: any = {
       deletedAt: IsNull(),
       month: month,
@@ -520,10 +467,7 @@ export class CodeService extends BaseService<Code, CodeDto> {
       }
     }
 
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
-    const [data, total] = await this.repository.findAndCount({
+    const data = await this.repository.find({
       where,
       relations: ['usedBy', 'gift'],
       select: {
@@ -554,13 +498,8 @@ export class CodeService extends BaseService<Code, CodeDto> {
         },
       },
       order: { usedAt: 'DESC', id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    return {
-      data: data as any,
-      total,
-    };
+    return data as any;
   }
 }

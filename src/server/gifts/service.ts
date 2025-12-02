@@ -10,7 +10,7 @@ export class GiftService extends BaseService<Gift, GiftDto> {
     super(AppDataSource.getRepository(Gift));
   }
 
-  async getPaging(query: PagingDto): Promise<{ data: GiftDto[]; total: number }> {
+  async getAll(query: PagingDto): Promise<GiftDto[]> {
     const where: any = { deletedAt: IsNull() };
     
     if (query.search) {
@@ -21,25 +21,21 @@ export class GiftService extends BaseService<Gift, GiftDto> {
         where.name = Like(`%${query.search}%`);
       }
     }
-const result = await this.findPaging(
-  where,
-  { _id: 'DESC' } as any,
-  query.limit ?? 10,
-  query.page ?? 1,
-  {
-    _id: true,
-    id: true,
-    name: true,
-    image: true,
-    images: true,
-    totalCount: true,
-    usedCount: true,
-  },
-);
 
-return {
-data: result.data.map(item => Object.assign(new GiftDto(), item)),
-  total: result.total,
-};
+    const data = await this.repository.find({
+      where,
+      select: {
+        _id: true,
+        id: true,
+        name: true,
+        image: true,
+        images: true,
+        totalCount: true,
+        usedCount: true,
+      },
+      order: { _id: 'DESC' },
+    });
+
+    return data.map(item => Object.assign(new GiftDto(), item));
   }
 }

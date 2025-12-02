@@ -265,7 +265,7 @@ export class UserService extends UserAuthService<UserDto> {
     }
   }
 
-  async getPaging(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
+  async getAll(query: GetUsersRequestDto): Promise<UserDto[]> {
     const where: any = { deletedAt: IsNull(), role: UserRole.ADMIN };
     
    
@@ -284,7 +284,7 @@ if (query.search) {
     const orderBy = query.orderBy || '_id';
     const order: any = { [orderBy]: orderType };
 
-    const [users, total] = await this.repository.findAndCount({
+    const users = await this.repository.find({
       where,
       select: {
         _id: true,
@@ -299,8 +299,6 @@ if (query.search) {
         createdAt: true,
       },
       order,
-      take: query.limit ?? 10,
-      skip: ((query.page ?? 1) - 1) * (query.limit ?? 10),
     });
 
     // Codes bilan join qilish
@@ -345,14 +343,11 @@ if (query.search) {
       })
     );
 
-    return {
-      data: usersWithCodes as any,
-      total,
-    };
+    return usersWithCodes as any;
   }
 
   // 🆕 Userlarni hammasini olish (USER role)
-  async getAllUsers(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
+  async getAllUsers(query: GetUsersRequestDto): Promise<UserDto[]> {
     const where: any = { deletedAt: IsNull(), role: UserRole.USER };
     
     if (query.search) {
@@ -410,7 +405,7 @@ if (query.search) {
   }
 
   // 🆕 Adminlarni hammasini olish (ADMIN va SUPER_ADMIN)
-  async getAllAdmins(query: GetUsersRequestDto): Promise<{ data: UserDto[]; total: number }> {
+  async getAllAdmins(query: GetUsersRequestDto): Promise<UserDto[]> {
     const where: any = { 
       deletedAt: IsNull(), 
       role: In([UserRole.ADMIN, UserRole.SUPER_ADMIN])
@@ -432,7 +427,7 @@ if (query.search) {
     const orderBy = query.orderBy || '_id';
     const order: any = { [orderBy]: orderType };
 
-    const [users, total] = await this.repository.findAndCount({
+    const users = await this.repository.find({
       where,
       select: {
         _id: true,
@@ -454,8 +449,6 @@ if (query.search) {
         lastUseAt: true,
       },
       order,
-      take: query.limit ?? 10,
-      skip: ((query.page ?? 1) - 1) * (query.limit ?? 10),
     });
 
     // Password ni olib tashlash
@@ -464,10 +457,7 @@ if (query.search) {
       return userWithoutPassword;
     });
 
-    return {
-      data: usersWithoutPassword as any,
-      total,
-    };
+    return usersWithoutPassword as any;
   }
 
   // 🆕 Har qanday user'ni tgId orqali olish

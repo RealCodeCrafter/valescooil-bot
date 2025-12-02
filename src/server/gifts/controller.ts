@@ -54,15 +54,10 @@ return res.success(gift);
   }
 
   public async getAll(req: Request, res: Response) {
-    const query = await validateIt(req.query, PagingDto, [GiftDtoGroup.PAGINATION]);
-    const gifts = await this.giftService.getPaging(query);
+    const query = await validateIt(req.query, PagingDto, []);
+    const gifts = await this.giftService.getAll(query);
 
-    return res.success(gifts.data, {
-      currentPage: query.page,
-      totalData: gifts.total,
-      totalPages: Math.ceil(gifts.total / query.limit),
-      limit: query.limit,
-    });
+    return res.success(gifts);
   }
 
   public async deleteById(req: Request, res: Response) {
