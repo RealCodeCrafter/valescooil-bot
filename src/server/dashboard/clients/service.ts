@@ -11,9 +11,6 @@ export class DashboardClientService {
   private winnerRepository = AppDataSource.getRepository(Winner);
 
   async getClients(query: DashboardClientPagingDto) {
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     const where: any = {
       deletedAt: IsNull(),
       role: Not(In([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
@@ -52,7 +49,7 @@ if (query.search) {
 }
 
 
-    const [users, total] = await this.userRepository.findAndCount({
+    const users = await this.userRepository.find({
       where,
       select: {
         _id: true,
@@ -64,8 +61,6 @@ if (query.search) {
         createdAt: true,
       },
       order: { createdAt: 'DESC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
     // Gifts count hisoblash
@@ -101,9 +96,6 @@ if (query.search) {
 
     const filtered = usersWithGifts.filter(u => u !== null);
 
-    return {
-      data: filtered,
-      total: filtered.length,
-    };
+    return filtered;
   }
 }

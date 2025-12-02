@@ -12,38 +12,23 @@ class DashboardCodesController {
   }
 
   async getCodes(req: Request, res: Response) {
-    const query = await validateIt(req.query, DashboardCodesDto, [DashboardCodesDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, DashboardCodesDto, []);
     const result = await this.dashboardCodesService.getCodes(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: result.total,
-      pageCount: Math.ceil(result.total / query.limit),
-    });
+    return res.success(result);
   }
 
   async search(req: Request, res: Response) {
-    const query = await validateIt(req.query, DashboardCodesDto, [DashboardCodesDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, DashboardCodesDto, []);
     
     if (!query.search || !query.search.trim()) {
-      return res.success([], {
-        currentPage: query.page,
-        limit: query.limit,
-        totalCount: 0,
-        pageCount: 0,
-      });
+      return res.success([]);
     }
 
     // Search kodlar, g'olib kodlar va foydalanuvchilar orasida qidirish
     const result = await this.dashboardCodesService.searchAll(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: result.total,
-      pageCount: Math.ceil(result.total / query.limit),
-    });
+    return res.success(result);
   }
 }
 

@@ -11,15 +11,10 @@ class DashboardGiftCodesController {
   }
 
   async getGiftCodes(req: Request, res: Response) {
-    const query = await validateIt(req.query, DashboardGiftCodesDto, [DashboardGiftCodesDtoGroup.PAGINATION]);
+    const query = await validateIt(req.query, DashboardGiftCodesDto, []);
     const result = await this.dashboardCodesService.getGiftCodes(query);
 
-    return res.success(result.data, {
-      currentPage: query.page,
-      limit: query.limit,
-      totalCount: result.total,
-      pageCount: Math.ceil(result.total / query.limit),
-    });
+    return res.success(result);
   }
 }
 

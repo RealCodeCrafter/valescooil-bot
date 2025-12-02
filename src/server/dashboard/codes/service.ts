@@ -11,16 +11,10 @@ export class DashboardCodesService {
   private winnerRepository = AppDataSource.getRepository(Winner);
 
   async getGiftCodes(query: DashboardGiftCodesDto) {
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     return this.aggregateGiftReceivers(query);
   }
 
   async getWinnerCodes(query: DashboardGiftCodesDto) {
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     return this.aggregateWinnerCodes(query);
   }
 
@@ -31,7 +25,7 @@ export class DashboardCodesService {
       usedAt: Not(IsNull()),
     };
 
-    const [winners, total] = await this.winnerRepository.findAndCount({
+    const winners = await this.winnerRepository.find({
       where,
       relations: ['usedBy', 'gift'],
       select: {
@@ -54,23 +48,15 @@ export class DashboardCodesService {
         },
       },
       order: { usedAt: 'DESC', id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
     // Filter admin users
     const filtered = winners.filter(w => w.usedBy && !['ADMIN', 'SUPER_ADMIN'].includes(w.usedBy.role));
 
-    return {
-      data: filtered.map(this.transformRecord),
-      total: filtered.length,
-    };
+    return filtered.map(this.transformRecord);
   }
 
   async getCodes(query: DashboardCodesDto) {
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     return this.aggregateFromBothCollections(query);
   }
 
@@ -86,7 +72,7 @@ export class DashboardCodesService {
       where.giftId = query.giftId;
     }
 
-    const [codes, codesTotal] = await this.codeRepository.findAndCount({
+    const codes = await this.codeRepository.find({
       where,
       relations: ['usedBy', 'gift'],
       select: {
@@ -109,11 +95,9 @@ export class DashboardCodesService {
         },
       },
       order: { usedAt: 'DESC', id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
-    const [winners, winnersTotal] = await this.winnerRepository.findAndCount({
+    const winners = await this.winnerRepository.find({
       where,
       relations: ['usedBy', 'gift'],
       select: {
@@ -136,8 +120,6 @@ export class DashboardCodesService {
         },
       },
       order: { usedAt: 'DESC', id: 'ASC' },
-      take: query.limit,
-      skip: (query.page - 1) * query.limit,
     });
 
     // Filter admin users and gift names
@@ -181,15 +163,7 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
       return (a.id || 0) - (b.id || 0);
     });
 
-    // Pagination
-    const total = codesTotal + winnersTotal;
-    const startIndex = (query.page - 1) * query.limit;
-    const paginatedResults = allResults.slice(startIndex, startIndex + query.limit);
-
-    return {
-      data: paginatedResults.map(this.transformRecord),
-      total,
-    };
+    return allResults.map(this.transformRecord);
   }
 
   private async aggregateFromBothCollections(query: DashboardCodesDto | DashboardGiftCodesDto) {
@@ -298,23 +272,12 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
       return (a.id || 0) - (b.id || 0);
     });
 
-    // Pagination
-    const total = allResults.length;
-    const startIndex = (query.page - 1) * query.limit;
-    const paginatedResults = allResults.slice(startIndex, startIndex + query.limit);
-
-    return {
-      data: paginatedResults.map(this.transformRecord),
-      total,
-    };
+    return allResults.map(this.transformRecord);
   }
 
   async searchAll(query: DashboardCodesDto) {
-    query.limit = query.limit ?? 10;
-    query.page = query.page ?? 1;
-
     if (!query.search || !query.search.trim()) {
-      return { data: [], total: 0 };
+      return [];
     }
 
     const searchTerm = query.search.trim().toLowerCase();
@@ -427,15 +390,7 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
       return bDate - aDate;
     });
 
-    // Pagination
-    const total = allResults.length;
-    const startIndex = (query.page - 1) * query.limit;
-    const paginatedResults = allResults.slice(startIndex, startIndex + query.limit);
-
-    return {
-      data: paginatedResults.map(this.transformRecord),
-      total,
-    };
+    return allResults.map(this.transformRecord);
   }
 
   private transformRecord(record: any) {
