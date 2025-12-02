@@ -14,11 +14,11 @@ export class DashboardCodesService {
     return this.aggregateGiftReceivers(query);
   }
 
-  async getWinnerCodes(query: DashboardGiftCodesDto) {
-    return this.aggregateWinnerCodes(query);
+  async getWinnerCodes() {
+    return this.aggregateWinnerCodes();
   }
 
-  private async aggregateWinnerCodes(query: DashboardGiftCodesDto) {
+  private async aggregateWinnerCodes() {
     const where: any = {
       deletedAt: IsNull(),
       isUsed: true,
