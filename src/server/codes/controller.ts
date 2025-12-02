@@ -13,6 +13,8 @@ class CodeController {
     this.checkCode = this.checkCode.bind(this);
     this.getUsedBy = this.getUsedBy.bind(this);
     this.codeGiftGive = this.codeGiftGive.bind(this);
+    this.resetCodeUsage = this.resetCodeUsage.bind(this);
+    this.resetWinnerCodeUsage = this.resetWinnerCodeUsage.bind(this);
     this.getWinners = this.getWinners.bind(this);
     this.getWinnerById = this.getWinnerById.bind(this);
     this.getLosers = this.getLosers.bind(this);
@@ -40,6 +42,20 @@ class CodeController {
     const data = await validateIt(req.params, CodeDto, [CodeDtoGroup.GET_BY_ID]);
 
     const result = await this.codesService.codeGiftGive(data._id, req.user._id);
+    return res.success(result);
+  }
+
+  public async resetCodeUsage(req: Request, res: Response) {
+    const data = await validateIt(req.params, CodeDto, [CodeDtoGroup.GET_BY_ID]);
+
+    const result = await this.codesService.resetCodeUsage(data._id);
+    return res.success(result);
+  }
+
+  public async resetWinnerCodeUsage(req: Request, res: Response) {
+    const data = await validateIt(req.params, CodeDto, [CodeDtoGroup.GET_BY_ID]);
+
+    const result = await this.codesService.resetWinnerCodeUsage(data._id);
     return res.success(result);
   }
 

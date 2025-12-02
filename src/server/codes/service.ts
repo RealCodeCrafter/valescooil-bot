@@ -42,6 +42,47 @@ export class CodeService extends BaseService<Code, CodeDto> {
     return result;
   }
 
+  async resetCodeUsage(codeId: string) {
+    const code = await this.findByIdAndUpdate(
+      codeId,
+      {
+        isUsed: false,
+        usedAt: null,
+        usedById: null,
+      } as any,
+    );
+    if (!code) throw CodeException.NotFound();
+    
+    // month fieldni olib tashlaymiz
+    const { month, ...result } = code as any;
+    return result;
+  }
+
+  async resetWinnerCodeUsage(winnerId: string) {
+    const winner = await this.winnerRepository.findOne({ where: { _id: winnerId } as any });
+    if (!winner) throw CodeException.NotFound();
+    
+    await this.winnerRepository.update(
+      { _id: winnerId } as any,
+      {
+        isUsed: false,
+        usedAt: null,
+        usedById: null,
+      } as any,
+    );
+    
+    const updated = await this.winnerRepository.findOne({ 
+      where: { _id: winnerId } as any,
+      relations: ['gift', 'usedBy'],
+    });
+    
+    if (!updated) throw CodeException.NotFound();
+    
+    // month fieldni olib tashlaymiz
+    const { month, ...result } = updated as any;
+    return result;
+  }
+
   async getAll(query: CodePagingDto): Promise<CodeDto[]> {
     const where: any = { deletedAt: IsNull() };
 
