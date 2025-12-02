@@ -366,7 +366,7 @@ if (query.search) {
     const orderBy = query.orderBy || '_id';
     const order: any = { [orderBy]: orderType };
 
-    const [users, total] = await this.repository.findAndCount({
+    const users = await this.repository.find({
       where,
       select: {
         _id: true,
@@ -388,8 +388,6 @@ if (query.search) {
         lastUseAt: true,
       },
       order,
-      take: query.limit ?? 10,
-      skip: ((query.page ?? 1) - 1) * (query.limit ?? 10),
     });
 
     // Password ni olib tashlash
@@ -398,10 +396,7 @@ if (query.search) {
       return userWithoutPassword;
     });
 
-    return {
-      data: usersWithoutPassword as any,
-      total,
-    };
+    return usersWithoutPassword as any;
   }
 
   // 🆕 Adminlarni hammasini olish (ADMIN va SUPER_ADMIN)
