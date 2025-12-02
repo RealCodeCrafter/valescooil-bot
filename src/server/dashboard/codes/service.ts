@@ -169,13 +169,15 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
   private async aggregateFromBothCollections(query: DashboardCodesDto | DashboardGiftCodesDto) {
     const where: any = {
       deletedAt: IsNull(),
+      isUsed: true,
+      usedAt: Not(IsNull()),
     };
 
     if ('giftId' in query && query.giftId) {
       where.giftId = query.giftId;
     }
 
-    // Barcha kodlarni olish (pagination dan oldin)
+    // Faqat ishlatilgan kodlarni olish
     const codes = await this.codeRepository.find({
       where,
       relations: ['usedBy', 'gift'],
@@ -226,9 +228,9 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
       order: { id: 'ASC' },
     });
 
-    // Filter admin users - faqat ishlatilgan kodlarda, ishlatilmagan kodlar ham ko'rsatiladi
-    const filteredCodes = codes.filter(c => !c.usedBy || !['ADMIN', 'SUPER_ADMIN'].includes(c.usedBy.role));
-    const filteredWinners = winners.filter(w => !w.usedBy || !['ADMIN', 'SUPER_ADMIN'].includes(w.usedBy.role));
+    // Filter admin users - faqat ishlatilgan kodlar
+    const filteredCodes = codes.filter(c => c.usedBy && !['ADMIN', 'SUPER_ADMIN'].includes(c.usedBy.role));
+    const filteredWinners = winners.filter(w => w.usedBy && !['ADMIN', 'SUPER_ADMIN'].includes(w.usedBy.role));
 
     // Gift names filter
     let finalCodes = filteredCodes;
@@ -257,15 +259,8 @@ if ('giftNames' in query && Array.isArray((query as any).giftNames) && (query as
       );
     }
 
-    // Combine and sort - usedAt null bo'lganlar oxirida
+    // Combine and sort - faqat ishlatilgan kodlar
     const allResults = [...finalCodes, ...finalWinners].sort((a, b) => {
-      // usedAt null bo'lganlar oxirida
-      if (!a.usedAt && !b.usedAt) {
-        return (a.id || 0) - (b.id || 0);
-      }
-      if (!a.usedAt) return 1;
-      if (!b.usedAt) return -1;
-      
       const aDate = new Date(a.usedAt).getTime();
       const bDate = new Date(b.usedAt).getTime();
       if (bDate !== aDate) return bDate - aDate;
