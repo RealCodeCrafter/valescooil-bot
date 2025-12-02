@@ -83,6 +83,78 @@ export class CodeService extends BaseService<Code, CodeDto> {
     return result;
   }
 
+  async resetCodeUsageByValue(value: string) {
+    const normalized = norm(value);
+    const withHyphen = normalized.length === 10 ? `${normalized.slice(0, 6)}-${normalized.slice(6)}` : normalized;
+    
+    const code = await this.repository.findOne({
+      where: [
+        { value: value, deletedAt: IsNull() },
+        { value: withHyphen, deletedAt: IsNull() },
+        { value: normalized, deletedAt: IsNull() },
+        { value: value.replace(/-/g, ''), deletedAt: IsNull() },
+      ] as any,
+    });
+    
+    if (!code) throw CodeException.NotFound();
+    
+    await this.repository.update(
+      { _id: code._id } as any,
+      {
+        isUsed: false,
+        usedAt: null,
+        usedById: null,
+      } as any,
+    );
+    
+    const updated = await this.repository.findOne({ 
+      where: { _id: code._id } as any,
+      relations: ['gift', 'usedBy'],
+    });
+    
+    if (!updated) throw CodeException.NotFound();
+    
+    // month fieldni olib tashlaymiz
+    const { month, ...result } = updated as any;
+    return result;
+  }
+
+  async resetWinnerCodeUsageByValue(value: string) {
+    const normalized = norm(value);
+    const withHyphen = normalized.length === 10 ? `${normalized.slice(0, 6)}-${normalized.slice(6)}` : normalized;
+    
+    const winner = await this.winnerRepository.findOne({
+      where: [
+        { value: value, deletedAt: IsNull() },
+        { value: withHyphen, deletedAt: IsNull() },
+        { value: normalized, deletedAt: IsNull() },
+        { value: value.replace(/-/g, ''), deletedAt: IsNull() },
+      ] as any,
+    });
+    
+    if (!winner) throw CodeException.NotFound();
+    
+    await this.winnerRepository.update(
+      { _id: winner._id } as any,
+      {
+        isUsed: false,
+        usedAt: null,
+        usedById: null,
+      } as any,
+    );
+    
+    const updated = await this.winnerRepository.findOne({ 
+      where: { _id: winner._id } as any,
+      relations: ['gift', 'usedBy'],
+    });
+    
+    if (!updated) throw CodeException.NotFound();
+    
+    // month fieldni olib tashlaymiz
+    const { month, ...result } = updated as any;
+    return result;
+  }
+
   async getAll(query: CodePagingDto): Promise<CodeDto[]> {
     const where: any = { deletedAt: IsNull() };
 
