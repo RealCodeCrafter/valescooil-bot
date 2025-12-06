@@ -79,7 +79,7 @@ export class UserService extends UserAuthService<UserDto> {
       select: { _id: true, username: true, role: true, tgId: true },
     });
     
-    if (!user || user.role !== UserRole.ADMIN) {
+    if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN)) {
       throw UserException.NotFound();
     }
 
