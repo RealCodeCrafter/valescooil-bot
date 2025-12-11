@@ -22,6 +22,7 @@ export const ENV = {
     TOKEN: process.env.BOT_TOKEN || '',
     CHAT_ID: getOrReturnDefaultNumber(process.env.BOT_CHAT_ID, -334307783),
     BACKUP_CHANNEL_ID: getOrReturnDefaultNumber(process.env.BACKUP_CHANNEL_ID, -334307783),
+    BASE_URL: process.env.BOT_BASE_URL || process.env.BOT_URL || '',
   },
   BASE_URL: process.env.BASE_URL || '',
   HTTP_HOST: process.env.HTTP_HOST || '0.0.0.0',

@@ -31,11 +31,17 @@ export class UserAuthService<Dto> extends BaseService<User, Dto> {
     }
 
     const jwtPayload: UserWTPayloadInterface = { _id: user._id.toString(), role: user.role };
-    return {
+    const response: any = {
       accessToken: await this.signAsync(jwtPayload, 'access'),
       refreshToken: await this.signAsync(jwtPayload, 'refresh'),
       role: user.role,
     };
+    
+    if (ENV.BOT.BASE_URL) {
+      response.botBaseUrl = ENV.BOT.BASE_URL;
+    }
+    
+    return response;
   }
 
   async getMe(id: string): Promise<Partial<UserDto>> {
@@ -73,11 +79,17 @@ export class UserAuthService<Dto> extends BaseService<User, Dto> {
   async refreshToken(token: string) {
     const decoded = await this.authorizeUser(token, 'refresh');
 
-    return {
+    const response: any = {
       accessToken: await this.signAsync(decoded, 'access'),
       refreshToken: await this.signAsync(decoded, 'refresh'),
       role: decoded.role,
     };
+    
+    if (ENV.BOT.BASE_URL) {
+      response.botBaseUrl = ENV.BOT.BASE_URL;
+    }
+    
+    return response;
   }
 
   async authorizeUser(token: string, tokenType: 'access' | 'refresh') {
