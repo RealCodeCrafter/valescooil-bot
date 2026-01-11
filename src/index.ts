@@ -3,7 +3,6 @@ import app from './server/server';
 import { Server } from 'http';
 import { runCronJobs } from './common/cron-job/cron-job';
 import { postgresDataBase } from './db/connect.db';
-import { ensureSuperAdmin } from './db/seed/ensure-super-admin';
 
 let server: Server;
 let status: 'online' | 'offline' | 'starting' | 'stopping' = 'offline';
@@ -21,9 +20,6 @@ async function runServer() {
       console.error('Database initialization failed:', err);
       process.exit(1);
     }
-
-    // Ensure super admin exists
-    await ensureSuperAdmin();
 
     // Import bot
     await import('./bot/core/index');
